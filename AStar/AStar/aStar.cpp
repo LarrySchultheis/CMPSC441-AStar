@@ -24,8 +24,9 @@ bool findObstacle(int row, int col, vector<obstacle> obsPos, int obstacles, int 
 int getDistance(position currentNode, position goalNode);
 bool evaluateSuccess(position currentNode, position goalNode);
 bool checkBounds(position node);
-bool skipSuccessor(list<position> tempList, position successor);
+bool skipSuccessor(vector<position> tempList, position successor);
 bool compareValue(position p1, position p2);
+bool foundObstacle(position node, vector<obstacle> obstacles);
 
 int rows, cols;
 
@@ -33,7 +34,7 @@ int main()
 {
 
 	// add your code here
-	int startRow, startCol, goalRow, goalCol, obstacles, tempRow, tempCol, curRow, curCol;
+	int startRow, startCol, goalRow, goalCol, obstacles, tempRow, tempCol;
 	bool foundGoal = false;
 	bool done = false;
 	bool obstacleFound = false;
@@ -53,8 +54,8 @@ int main()
 
 	vector<int> obstacleRows;
 	vector<int> obstacleCols;
-	list<position> closedList;
-	list<position> openList;
+	vector<position> closedList;
+	vector<position> openList;
 	vector<obstacle> obsPos;
 
 	for (int i = 0; i < obstacles; i++) {
@@ -67,53 +68,17 @@ int main()
 		obsPos.push_back(ob);
 	}
 
-	curRow = startRow;
-	curCol = startCol;
-
-	startNode.row = curRow;
-	startNode.col = curCol;
+	startNode.row = startRow;
+	startNode.col = startCol;
 	startNode.hVal = getDistance(startNode, goalNode);
 	startNode.gVal = 0;
 	startNode.parent = NULL;
 	startNode.fval = startNode.hVal + startNode.gVal;
 
 	openList.push_back(startNode);
-	cout << startNode.row << " " << startNode.col << " " << endl;
-
-
-
+	cout << startNode.row << " " << startNode.col << endl;
 
 	while (true) {
-
-		////up
-		//if ((curRow > goalRow) && !findObstacle(curRow, curCol, obsPos, obstacles, 0)) {
-		//	curRow--;
-		//}
-		////down
-		//else if ((curRow < goalRow) && !findObstacle(curRow, curCol, obsPos, obstacles, 2)) {
-		//	curRow++;
-		//}
-
-		//else if ((curCol < goalCol) && !findObstacle(curRow, curCol, obsPos, obstacles, 1)) {
-		//	curCol++;
-		//}
-		//else if ((curCol > goalCol) && !findObstacle(curRow, curCol, obsPos, obstacles, 3)) {
-		//	curCol--;
-		//}
-		//else {
-		//	//stuck
-		//	if (curRow == goalRow && curCol == goalCol) {
-		//		//found goal
-		//		foundGoal = true;
-		//		done = true;
-		//	}
-		//	else {
-		//		//stuck and did not find goal
-		//		foundGoal = false;
-		//		done = true;
-		//	}
-
-		//}
 
 		if (openList.size() == 0)
 		{
@@ -122,8 +87,10 @@ int main()
 			break;
 		}
 
-		position chosenNode = openList.front();
-		openList.pop_front();
+		position chosenNode = openList.back();
+		openList.pop_back();
+
+		closedList.push_back(chosenNode);
 
 		if (evaluateSuccess(chosenNode, goalNode))
 		{
@@ -131,31 +98,30 @@ int main()
 			break;
 		}
 
-		closedList.push_back(chosenNode);
 
 		for (int i = 0; i < 4; i++)
 		{
 			position temp;
-			list<position> tempOpenList = openList;
-			list<position> tempClosedList = closedList;
+			vector<position> tempOpenList(openList);
+			vector<position> tempClosedList(closedList);
 
 			switch (i)
 			{
 				case 0:
 					temp.row = chosenNode.row + 1;
-					temp.col = chosenNode.col + 1;
+					temp.col = chosenNode.col;
 					break;
 				case 1:
-					temp.row = chosenNode.row + 1;
-					temp.col = chosenNode.col - 1;
+					temp.row = chosenNode.row;
+					temp.col = chosenNode.col + 1;
 					break;
 				case 2:
 					temp.row = chosenNode.row - 1;
-					temp.col = chosenNode.col - 1;
+					temp.col = chosenNode.col;
 					break;
 				case 3: 
-					temp.row = chosenNode.row - 1;
-					temp.col = chosenNode.col + 1;
+					temp.row = chosenNode.row;
+					temp.col = chosenNode.col - 1;
 					break;
 			}
 
@@ -165,21 +131,27 @@ int main()
 				temp.hVal = getDistance(temp, goalNode);
 				temp.gVal = chosenNode.gVal + 1;
 				temp.fval = temp.hVal + temp.gVal;
+
+				bool skip = false;
+
+				if (skipSuccessor(tempOpenList, temp))
+					skip = true;
+				else if (skipSuccessor(tempClosedList, temp))
+					skip = true;
+				if (foundObstacle(temp, obsPos))
+					skip = true;
+				if (!skip)
+				{
+					//add successor
+					openList.push_back(temp);
+					cout << temp.row << " " << temp.col << endl;
+
+					//sort list
+					sort(openList.begin(), openList.end(), compareValue);
+				}
 			}
 
-			if (skipSuccessor(tempOpenList, temp))
-				break;
-			else if (skipSuccessor(tempClosedList, temp))
-				break;
-			else
-			{
-				//add successor
-				openList.push_back(temp);
-				cout << temp.row << " " << temp.col << " " << endl;
 
-				//sort list
-				//sort(openList.begin(), openList.end(), compareValue);
-			}
 		}
 	
 	}
@@ -188,8 +160,7 @@ int main()
 
 
 	for (int i = 0; i < closedList.size(); i++) {
-		cout << closedList.front().row << " " << closedList.front().col << endl;
-		closedList.pop_front();
+		cout << closedList.at(i).row << " " << closedList.at(i).col << endl;
 	}
 
 
@@ -200,6 +171,11 @@ int main()
 	cout.flush();
 	system("pause");
 	return 0;
+}
+
+position aStar()
+{
+
 }
 
 // Returns the h or g value of the current node
@@ -222,27 +198,39 @@ bool checkBounds(position node)
 	return (node.row >= 0 && node.row < rows && node.col >= 0 && node.col < cols);
 }
 
-bool skipSuccessor(list<position> tempList, position successor)
+bool skipSuccessor(vector<position> tempList, position successor)
 {
-	for (int j = 0; j < tempList.size(); j++)
+	for (int i = 0; i < tempList.size(); i++)
 	{
-		position tempnode = tempList.front();
+		position tempnode = tempList.at(i);
 		if (tempnode.row == successor.row && tempnode.col == successor.col)
 		{
-			if (tempnode.hVal <= successor.fval)
+			if (tempnode.fval <= successor.fval)
 			{
 				//skip successor
 				return true;
 			}
 		}
-		tempList.pop_front();
 	}
 	return false;
 }
 
 bool compareValue(position p1, position p2)
 {
-	return (p1.fval < p2.fval);
+	return (p1.fval > p2.fval);
+}
+
+
+bool foundObstacle(position node, vector<obstacle> obstacles)
+{
+	for (int i = 0; i < obstacles.size(); i++)
+	{
+		if (node.row == obstacles[i].row && node.col == obstacles[i].col)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 bool findObstacle(int row, int col, vector<obstacle> obsPos, int obstacles, int direction)
