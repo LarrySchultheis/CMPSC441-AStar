@@ -8,7 +8,8 @@ struct position
 {
 	int row;
 	int col;
-	position* parent;
+	int parentRow;
+	int parentCol;
 	int gVal;
 	int hVal;
 	int fval;
@@ -27,8 +28,12 @@ bool checkBounds(position node);
 bool skipSuccessor(vector<position> tempList, position successor);
 bool compareValue(position p1, position p2);
 bool foundObstacle(position node, vector<obstacle> obstacles);
+position aStar(int startRow, int startCol, int goalRow, int goalCol, vector<obstacle> obsPos);
+
 
 int rows, cols;
+vector<position> closedList;
+vector<position> openList;
 
 int main()
 {
@@ -48,14 +53,12 @@ int main()
 	cin >> goalCol;
 	cin >> obstacles;
 
-	position goalNode, startNode;
-	goalNode.row = goalRow;
-	goalNode.col = goalCol;
+
 
 	vector<int> obstacleRows;
 	vector<int> obstacleCols;
-	vector<position> closedList;
-	vector<position> openList;
+
+	vector<position> finalPath;
 	vector<obstacle> obsPos;
 
 	for (int i = 0; i < obstacles; i++) {
@@ -68,11 +71,53 @@ int main()
 		obsPos.push_back(ob);
 	}
 
+	position end = aStar(startRow, startCol, goalRow, goalCol, obsPos);
+
+	cout << -1 << " " << -1 << endl;
+
+	if (end.parentRow == NULL)
+	{
+		cerr << "No path exists to goal" << endl;
+	}
+	else
+	{
+		position temp = end;
+		for (int i = closedList.size()-1; i >= 0; i--)
+		{
+			if (temp.row == closedList.at(i).row && temp.col == closedList.at(i).col)
+			{
+				finalPath.push_back(closedList.at(i));
+				temp.row = closedList.at(i).parentRow;
+				temp.col = closedList.at(i).parentCol;
+			}
+		}
+
+		for (int i = finalPath.size() - 1; i >= 0; i--)
+		{
+			cout << finalPath.at(i).row << " " << finalPath.at(i).col << endl;
+		}
+	}
+
+	cout << -1 << " " << -1 << endl;
+
+	cout.flush();
+	system("pause");
+	return 0;
+}
+
+position aStar(int startRow, int startCol, int goalRow, int goalCol, vector<obstacle> obsPos)
+{
+	bool failure;
+
+	position goalNode, startNode;
+	goalNode.row = goalRow;
+	goalNode.col = goalCol;
+
 	startNode.row = startRow;
 	startNode.col = startCol;
 	startNode.hVal = getDistance(startNode, goalNode);
 	startNode.gVal = 0;
-	startNode.parent = NULL;
+	startNode.parentRow = NULL;
 	startNode.fval = startNode.hVal + startNode.gVal;
 
 	openList.push_back(startNode);
@@ -83,8 +128,9 @@ int main()
 		if (openList.size() == 0)
 		{
 			//failure
-			failure = true;
-			break;
+			position failPos;
+			failPos.parentRow = NULL;
+			return failPos;
 		}
 
 		position chosenNode = openList.back();
@@ -94,8 +140,7 @@ int main()
 
 		if (evaluateSuccess(chosenNode, goalNode))
 		{
-			foundGoal = true;
-			break;
+			return chosenNode;
 		}
 
 
@@ -107,27 +152,28 @@ int main()
 
 			switch (i)
 			{
-				case 0:
-					temp.row = chosenNode.row + 1;
-					temp.col = chosenNode.col;
-					break;
-				case 1:
-					temp.row = chosenNode.row;
-					temp.col = chosenNode.col + 1;
-					break;
-				case 2:
-					temp.row = chosenNode.row - 1;
-					temp.col = chosenNode.col;
-					break;
-				case 3: 
-					temp.row = chosenNode.row;
-					temp.col = chosenNode.col - 1;
-					break;
+			case 0:
+				temp.row = chosenNode.row + 1;
+				temp.col = chosenNode.col;
+				break;
+			case 1:
+				temp.row = chosenNode.row;
+				temp.col = chosenNode.col + 1;
+				break;
+			case 2:
+				temp.row = chosenNode.row - 1;
+				temp.col = chosenNode.col;
+				break;
+			case 3:
+				temp.row = chosenNode.row;
+				temp.col = chosenNode.col - 1;
+				break;
 			}
 
 			if (checkBounds(temp))
 			{
-				temp.parent = &chosenNode;
+				temp.parentRow = chosenNode.row;
+				temp.parentCol = chosenNode.col;
 				temp.hVal = getDistance(temp, goalNode);
 				temp.gVal = chosenNode.gVal + 1;
 				temp.fval = temp.hVal + temp.gVal;
@@ -150,32 +196,8 @@ int main()
 					sort(openList.begin(), openList.end(), compareValue);
 				}
 			}
-
-
 		}
-	
 	}
-
-	cout << -1 << " " << -1 << endl;
-
-
-	for (int i = 0; i < closedList.size(); i++) {
-		cout << closedList.at(i).row << " " << closedList.at(i).col << endl;
-	}
-
-
-	cout << -1 << " " << -1 << endl;
-
-
-
-	cout.flush();
-	system("pause");
-	return 0;
-}
-
-position aStar()
-{
-
 }
 
 // Returns the h or g value of the current node
